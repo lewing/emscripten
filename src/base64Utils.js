@@ -39,8 +39,11 @@ var decodeBase64 = typeof atob === 'function' ? atob : function (input) {
   return output;
 };
 
-// Converts a string of base64 into a byte array.
-// Throws error on invalid input.
+/**
+ * Converts a string of base64 into a byte array.
+ * Throws error on invalid input.
+ * @param {string} s
+ */
 function intArrayFromBase64(s) {
 #if ENVIRONMENT_MAY_BE_NODE
   if (typeof ENVIRONMENT_IS_NODE === 'boolean' && ENVIRONMENT_IS_NODE) {

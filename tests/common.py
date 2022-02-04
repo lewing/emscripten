@@ -405,6 +405,10 @@ class RunnerCore(unittest.TestCase, metaclass=RunnerMeta):
     super().setUp()
     self.settings_mods = {}
     self.emcc_args = ['-Werror']
+    # We want to be strict about closure warnings in our test code.
+    # TODO(sbc): Remove this if we make it the default for `-Werror`:
+    # https://github.com/emscripten-core/emscripten/issues/16205):
+    self.ldflags = ['-sCLOSURE_WARNINGS=error']
     self.node_args = [
       # Increate stack trace limit to maximise usefulness of test failure reports
       '--stack-trace-limit=50',
@@ -534,8 +538,10 @@ class RunnerCore(unittest.TestCase, metaclass=RunnerMeta):
   # param @main_file whether this is the main file of the test. some arguments
   #                  (like --pre-js) do not need to be passed when building
   #                  libraries, for example
-  def get_emcc_args(self, main_file=False):
+  def get_emcc_args(self, main_file=False, ldflags=True):
     args = self.serialize_settings() + self.emcc_args
+    if ldflags:
+      args += self.ldflags
     if not main_file:
       for i, arg in enumerate(args):
         if arg in ('--pre-js', '--post-js'):
@@ -827,7 +833,7 @@ class RunnerCore(unittest.TestCase, metaclass=RunnerMeta):
     build_dir = self.get_build_dir()
     output_dir = self.get_dir()
 
-    emcc_args = self.get_emcc_args()
+    emcc_args = self.get_emcc_args(ldflags=False)
 
     hash_input = (str(emcc_args) + ' $ ' + str(env_init)).encode('utf-8')
     cache_name = name + ','.join([opt for opt in emcc_args if len(opt) < 7]) + '_' + hashlib.md5(hash_input).hexdigest() + cache_name_extra
@@ -849,7 +855,7 @@ class RunnerCore(unittest.TestCase, metaclass=RunnerMeta):
       # Avoid += so we don't mutate the default arg
       configure = configure + configure_args
 
-    cflags = ' '.join(self.get_emcc_args())
+    cflags = ' '.join(emcc_args)
     env_init.setdefault('CFLAGS', cflags)
     env_init.setdefault('CXXFLAGS', cflags)
     return build_library(name, build_dir, output_dir, generated_libs, configure,
